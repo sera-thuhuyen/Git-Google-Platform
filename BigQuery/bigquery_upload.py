@@ -1,5 +1,5 @@
 from google.cloud import bigquery
-from bigquery_config import get_client, get_table_ref, get_data_path, PROJECT_ID, DATA_DIR
+from bigquery_config import get_client, get_table_ref, get_data_path, PROJECT_ID, BASE_DATA_DIR
 import os
 
 
@@ -19,6 +19,7 @@ def create_dataset_if_not_exists(client: bigquery.Client, dataset_id: str, locat
 def upload_csv(
     filename: str,
     dataset_id: str,
+    subfolder: str = "",
     write_mode: str = "WRITE_TRUNCATE",
     skip_rows: int = 1,
     autodetect: bool = True,
@@ -43,7 +44,7 @@ def upload_csv(
     """
     # Tên bảng = tên file bỏ đuôi .csv
     table_id = os.path.splitext(filename)[0]
-    csv_file_path = get_data_path(filename)
+    csv_file_path = get_data_path(filename, subfolder)
 
     client = get_client()
 
@@ -119,33 +120,33 @@ def upload_csv_from_dataframe(df, dataset_id: str, table_id: str, write_mode: st
     print(f"✅ Upload thành công! Rows: {table.num_rows:,}")
 
 
-def list_csv_files() -> list:
-    """Liệt kê tất cả file CSV có trong thư mục data/."""
-    if not os.path.exists(DATA_DIR):
-        print(f"⚠️  Thư mục data/ chưa tồn tại: {DATA_DIR}")
+def list_csv_files(subfolder: str = "") -> list:
+    folder = os.path.join(BASE_DATA_DIR, subfolder) if subfolder else BASE_DATA_DIR
+    if not os.path.exists(folder):
+        print(f"⚠️  Thư mục chưa tồn tại: {folder}")
         return []
-    files = [f for f in os.listdir(DATA_DIR) if f.endswith(".csv")]
-    print(f"📁 File CSV trong thư mục data/:")
+    files = [f for f in os.listdir(folder) if f.endswith(".csv")]
+    print(f"📁 File CSV trong '{folder}':")
     for f in files:
-        size = os.path.getsize(os.path.join(DATA_DIR, f)) / 1024
-        print(f"   - {f} ({size:.1f} KB)  →  bảng: {os.path.splitext(f)[0]}")
+        size = os.path.getsize(os.path.join(folder, f)) / 1024
+        # print(f"   - {f} ({size:.1f} KB)  →  bảng: {os.path.splitext(f)[0]}")
     return files
 
-def upload_file (dataset_id: str, files_list: list):
+def upload_file (dataset_id: str, files_list: list, subfolder: str = ""):
     for filename in files_list:
-        upload_csv(filename=filename, dataset_id=dataset_id)
+        upload_csv(filename=filename, dataset_id=dataset_id, subfolder=subfolder)
 
 # ============================================================
 # Chạy thử
 # ============================================================
 if __name__ == "__main__":
-    DATASET = "K312"   # ← Thay dataset của bạn vào đây
+    DATASET = "K312"   
 
     # Danh sách file muốn upload
     files_to_upload = [
-        "address.csv",
-        "customer.csv",
-        "film.csv",
+        "address.csv"
     ]
 
-    upload_file(DATASET, files_to_upload)
+    subfolder = "film_folder"  # Nếu file nằm trong data/K312/ thì đặt tên subfolder là "K312", nếu nằm trực tiếp trong data/ thì để subfolder = ""
+
+    upload_file(DATASET, files_to_upload, subfolder)

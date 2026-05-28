@@ -5,15 +5,14 @@ import os
 # ============================================================
 # CẤU HÌNH - chỉnh sửa các giá trị này
 # ============================================================
-SERVICE_ACCOUNT_FILE = "project-thuhuyen-2023-bigquery.json"  # Đường dẫn tới file JSON
-PROJECT_ID = "project-thuhuyen-2023"       # Google Cloud Project ID
+SERVICE_ACCOUNT_FILE = "project-thuhuyen-2023-bigquery.json"
+PROJECT_ID = "project-thuhuyen-2023"
 
-# Thư mục chứa file CSV (luôn cố định)
-DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
+BASE_DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
 # ============================================================
 
 
-def get_client(dataset_id: str = None) -> bigquery.Client:
+def get_client() -> bigquery.Client:
     """Tạo và trả về BigQuery client đã xác thực."""
     if not os.path.exists(SERVICE_ACCOUNT_FILE):
         raise FileNotFoundError(
@@ -37,17 +36,21 @@ def get_table_ref(client: bigquery.Client, dataset_id: str, table_id: str) -> bi
     return client.dataset(dataset_id).table(table_id)
 
 
-def get_data_path(filename: str) -> str:
+def get_data_path(filename: str, subfolder: str = "") -> str:
     """
-    Trả về đường dẫn đầy đủ tới file CSV trong thư mục data/.
+    Trả về đường dẫn đầy đủ tới file CSV.
+    Cấu trúc: data/{subfolder}/{filename}
 
-    Ví dụ: get_data_path("sales.csv") -> "/your/project/data/sales.csv"
+    Args:
+        filename  : Tên file CSV (ví dụ: "sales.csv")
+        subfolder : Tên folder con trong data/ (ví dụ: "K312")
     """
-    path = os.path.join(DATA_DIR, filename)
+    folder = os.path.join(BASE_DATA_DIR, subfolder) if subfolder else BASE_DATA_DIR
+    path = os.path.join(folder, filename)
     if not os.path.exists(path):
         raise FileNotFoundError(
             f"Không tìm thấy file: {path}\n"
-            f"Hãy đặt file CSV vào thư mục: {DATA_DIR}"
+            f"Hãy đặt file CSV vào thư mục: {folder}"
         )
     return path
 
@@ -55,15 +58,13 @@ def get_data_path(filename: str) -> str:
 # Test kết nối
 if __name__ == "__main__":
     try:
-        # Tạo thư mục data nếu chưa có
-        os.makedirs(DATA_DIR, exist_ok=True)
+        os.makedirs(BASE_DATA_DIR, exist_ok=True)
 
         client = get_client()
         print(f"✅ Kết nối thành công!")
         print(f"   Project : {client.project}")
-        print(f"   Data dir: {DATA_DIR}")
+        print(f"   Data dir: {BASE_DATA_DIR}")
 
-        # List các dataset
         datasets = list(client.list_datasets())
         print(f"   Datasets ({len(datasets)}):")
         for ds in datasets:
